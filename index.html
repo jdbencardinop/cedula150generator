@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ID 150% PDF Generator</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">Client-side PDF tool</p>
+        <h1>Generate a clean letter-size PDF from both sides of an ID.</h1>
+        <p class="hero-copy">
+          Upload two scanned images. The file with "Frente" or "Front" in its
+          name is placed on top, each side prints at 12.9 x 8.1 cm by default,
+          and everything stays in this browser.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div id="dropZone" class="drop-zone" tabindex="0" role="button">
+          <input id="fileInput" type="file" accept="image/*" multiple hidden>
+          <div class="drop-icon">PDF</div>
+          <div>
+            <h2>Drop two images here</h2>
+            <p>or click to browse for PNG, JPG, or other browser-supported image files.</p>
+          </div>
+        </div>
+
+        <div class="preview-grid" aria-live="polite">
+          <article class="preview-card" id="topCard">
+            <div class="preview-label">Top image</div>
+            <div class="preview-frame">
+              <span>No image selected</span>
+              <img alt="Top ID side preview">
+            </div>
+            <div class="preview-meta">
+              <strong id="topName">Waiting for front image</strong>
+              <span id="topSize">-</span>
+            </div>
+          </article>
+
+          <article class="preview-card" id="bottomCard">
+            <div class="preview-label">Bottom image</div>
+            <div class="preview-frame">
+              <span>No image selected</span>
+              <img alt="Bottom ID side preview">
+            </div>
+            <div class="preview-meta">
+              <strong id="bottomName">Waiting for back image</strong>
+              <span id="bottomSize">-</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="settings">
+          <label>
+            Width
+            <span class="input-wrap">
+              <input id="widthCm" type="number" min="1" step="0.1" value="12.9">
+              <span>cm</span>
+            </span>
+          </label>
+          <label>
+            Height
+            <span class="input-wrap">
+              <input id="heightCm" type="number" min="1" step="0.1" value="8.1">
+              <span>cm</span>
+            </span>
+          </label>
+          <label>
+            Gap
+            <span class="input-wrap">
+              <input id="gapCm" type="number" min="0" step="0.1" value="1.0">
+              <span>cm</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="generateButton" class="primary" disabled>Generate PDF</button>
+          <button id="swapButton" type="button" disabled>Swap order</button>
+          <button id="clearButton" type="button" disabled>Clear</button>
+          <a id="downloadLink" class="download-link" hidden>Download PDF</a>
+        </div>
+
+        <p id="status" class="status">Choose two images to begin.</p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

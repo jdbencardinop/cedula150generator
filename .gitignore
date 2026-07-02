@@ -1,0 +1,12 @@
+.DS_Store
+
+# Local input images and generated PDFs should not be committed.
+*.bmp
+*.gif
+*.jpeg
+*.jpg
+*.pdf
+*.png
+*.tif
+*.tiff
+*.webp
