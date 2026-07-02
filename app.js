@@ -27,11 +27,10 @@ const TRANSLATIONS = {
     "settings.width": "Ancho",
     "settings.height": "Alto",
     "settings.gap": "Separación",
-    "buttons.generate": "Generar PDF",
+    "buttons.generate": "Generar y descargar PDF",
     "buttons.generating": "Generando...",
     "buttons.swap": "Cambiar orden",
     "buttons.clear": "Limpiar",
-    "buttons.download": "Descargar PDF",
     "status.initial": "Elige dos imágenes para comenzar.",
     "status.twoImages": "Elige exactamente dos archivos de imagen.",
     "status.noImages": "No se encontró ninguna imagen en la selección.",
@@ -43,7 +42,7 @@ const TRANSLATIONS = {
     "status.ready": "Imágenes listas. Genera el PDF cuando el orden sea correcto.",
     "status.generating": "Generando PDF...",
     "status.readyPdf":
-      "PDF listo. Si la descarga no empezó automáticamente, usa el enlace Descargar PDF.",
+      "PDF listo. Si la descarga no empezó automáticamente, vuelve a presionar Generar y descargar PDF.",
     "status.orderSwapped": "Orden cambiado.",
     "slot.top": "Imagen superior",
     "slot.bottom": "Imagen inferior",
@@ -76,11 +75,10 @@ const TRANSLATIONS = {
     "settings.width": "Width",
     "settings.height": "Height",
     "settings.gap": "Gap",
-    "buttons.generate": "Generate PDF",
+    "buttons.generate": "Generate and download PDF",
     "buttons.generating": "Generating...",
     "buttons.swap": "Swap order",
     "buttons.clear": "Clear",
-    "buttons.download": "Download PDF",
     "status.initial": "Choose two images to begin.",
     "status.twoImages": "Please choose exactly two image files.",
     "status.noImages": "No image files were found in that selection.",
@@ -92,7 +90,7 @@ const TRANSLATIONS = {
     "status.ready": "Images ready. Generate the PDF when you are happy with the order.",
     "status.generating": "Generating PDF...",
     "status.readyPdf":
-      "PDF ready. If the download did not start, use the Download PDF link.",
+      "PDF ready. If the download did not start, press Generate and download PDF again.",
     "status.orderSwapped": "Order swapped.",
     "slot.top": "Top image",
     "slot.bottom": "Bottom image",
@@ -123,7 +121,6 @@ const elements = {
   generateButton: document.querySelector("#generateButton"),
   swapButton: document.querySelector("#swapButton"),
   clearButton: document.querySelector("#clearButton"),
-  downloadLink: document.querySelector("#downloadLink"),
   status: document.querySelector("#status"),
   widthCm: document.querySelector("#widthCm"),
   heightCm: document.querySelector("#heightCm"),
@@ -196,8 +193,6 @@ function clearPdfUrl() {
     URL.revokeObjectURL(state.pdfUrl);
     state.pdfUrl = null;
   }
-  elements.downloadLink.hidden = true;
-  elements.downloadLink.removeAttribute("href");
 }
 
 function clearImages() {
@@ -631,10 +626,12 @@ async function generatePdf() {
     const blob = new Blob([pdfBytes], { type: "application/pdf" });
     state.pdfUrl = URL.createObjectURL(blob);
 
-    elements.downloadLink.href = state.pdfUrl;
-    elements.downloadLink.download = "id_150_percent.pdf";
-    elements.downloadLink.hidden = false;
-    elements.downloadLink.click();
+    const downloadLink = document.createElement("a");
+    downloadLink.href = state.pdfUrl;
+    downloadLink.download = "id_150_percent.pdf";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
     setStatus("status.readyPdf");
   } catch (error) {
     setStatusMessage(error.message, true);
