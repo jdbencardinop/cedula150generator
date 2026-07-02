@@ -1,20 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ID 150% PDF Generator</title>
+    <title>Generador de PDF 150% para documentos</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="app-shell">
       <section class="hero">
-        <p class="eyebrow">Client-side PDF tool</p>
-        <h1>Generate a clean letter-size PDF from both sides of an ID.</h1>
-        <p class="hero-copy">
-          Upload two scanned images. The file with "Frente" or "Front" in its
-          name is placed on top, each side prints at 12.9 x 8.1 cm by default,
-          and everything stays in this browser.
+        <div class="hero-top">
+          <p class="eyebrow" data-i18n="hero.eyebrow">Herramienta PDF en el navegador</p>
+          <label class="language-switch">
+            <span data-i18n="language.label">Idioma</span>
+            <select id="languageSelect" aria-label="Idioma">
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+        </div>
+        <h1 data-i18n="hero.title">Genera un PDF tamaño carta con ambos lados de un documento.</h1>
+        <p class="hero-copy" data-i18n="hero.copy">
+          Sube dos imágenes escaneadas. El archivo con "Frente", "Front" o "Anverso"
+          en el nombre se coloca arriba, cada lado se imprime a 12.9 x 8.1 cm por
+          defecto, y todo se procesa en este navegador.
         </p>
       </section>
 
@@ -23,32 +32,32 @@
           <input id="fileInput" type="file" accept="image/*" multiple hidden>
           <div class="drop-icon">PDF</div>
           <div>
-            <h2>Drop two images here</h2>
-            <p>or click to browse for PNG, JPG, or other browser-supported image files.</p>
+            <h2 data-i18n="drop.title">Arrastra dos imágenes aquí</h2>
+            <p data-i18n="drop.copy">o haz clic para elegir archivos PNG, JPG u otros formatos compatibles con tu navegador.</p>
           </div>
         </div>
 
         <div class="preview-grid" aria-live="polite">
           <article class="preview-card" id="topCard">
-            <div class="preview-label">Top image</div>
+            <div class="preview-label" data-i18n="preview.topLabel">Imagen superior</div>
             <div class="preview-frame">
-              <span>No image selected</span>
-              <img alt="Top ID side preview">
+              <span data-i18n="preview.empty">Sin imagen seleccionada</span>
+              <img alt="Vista previa del lado superior del documento" data-i18n-alt="preview.topAlt">
             </div>
             <div class="preview-meta">
-              <strong id="topName">Waiting for front image</strong>
+              <strong id="topName">Esperando imagen frontal</strong>
               <span id="topSize">-</span>
             </div>
           </article>
 
           <article class="preview-card" id="bottomCard">
-            <div class="preview-label">Bottom image</div>
+            <div class="preview-label" data-i18n="preview.bottomLabel">Imagen inferior</div>
             <div class="preview-frame">
-              <span>No image selected</span>
-              <img alt="Bottom ID side preview">
+              <span data-i18n="preview.empty">Sin imagen seleccionada</span>
+              <img alt="Vista previa del lado inferior del documento" data-i18n-alt="preview.bottomAlt">
             </div>
             <div class="preview-meta">
-              <strong id="bottomName">Waiting for back image</strong>
+              <strong id="bottomName">Esperando imagen posterior</strong>
               <span id="bottomSize">-</span>
             </div>
           </article>
@@ -56,21 +65,21 @@
 
         <div class="settings">
           <label>
-            Width
+            <span data-i18n="settings.width">Ancho</span>
             <span class="input-wrap">
               <input id="widthCm" type="number" min="1" step="0.1" value="12.9">
               <span>cm</span>
             </span>
           </label>
           <label>
-            Height
+            <span data-i18n="settings.height">Alto</span>
             <span class="input-wrap">
               <input id="heightCm" type="number" min="1" step="0.1" value="8.1">
               <span>cm</span>
             </span>
           </label>
           <label>
-            Gap
+            <span data-i18n="settings.gap">Separación</span>
             <span class="input-wrap">
               <input id="gapCm" type="number" min="0" step="0.1" value="1.0">
               <span>cm</span>
@@ -79,13 +88,13 @@
         </div>
 
         <div class="actions">
-          <button id="generateButton" class="primary" disabled>Generate PDF</button>
-          <button id="swapButton" type="button" disabled>Swap order</button>
-          <button id="clearButton" type="button" disabled>Clear</button>
-          <a id="downloadLink" class="download-link" hidden>Download PDF</a>
+          <button id="generateButton" class="primary" disabled data-i18n="buttons.generate">Generar PDF</button>
+          <button id="swapButton" type="button" disabled data-i18n="buttons.swap">Cambiar orden</button>
+          <button id="clearButton" type="button" disabled data-i18n="buttons.clear">Limpiar</button>
+          <a id="downloadLink" class="download-link" hidden data-i18n="buttons.download">Descargar PDF</a>
         </div>
 
-        <p id="status" class="status">Choose two images to begin.</p>
+        <p id="status" class="status">Elige dos imágenes para comenzar.</p>
       </section>
     </main>
 

@@ -2,10 +2,98 @@ const CM_TO_POINTS = 72 / 2.54;
 const LETTER_WIDTH_POINTS = 8.5 * 72;
 const LETTER_HEIGHT_POINTS = 11 * 72;
 const JPEG_QUALITY = 0.95;
+const LANGUAGE_STORAGE_KEY = "idPdfGeneratorLanguage";
+
+const TRANSLATIONS = {
+  es: {
+    "document.title": "Generador de PDF 150% para documentos",
+    "language.label": "Idioma",
+    "hero.eyebrow": "Herramienta PDF en el navegador",
+    "hero.title": "Genera un PDF tamaño carta con ambos lados de un documento.",
+    "hero.copy":
+      'Sube dos imágenes escaneadas. El archivo con "Frente", "Front" o "Anverso" en el nombre se coloca arriba, cada lado se imprime a 12.9 x 8.1 cm por defecto, y todo se procesa en este navegador.',
+    "drop.title": "Arrastra dos imágenes aquí",
+    "drop.copy":
+      "o haz clic para elegir archivos PNG, JPG u otros formatos compatibles con tu navegador.",
+    "preview.topLabel": "Imagen superior",
+    "preview.bottomLabel": "Imagen inferior",
+    "preview.empty": "Sin imagen seleccionada",
+    "preview.topAlt": "Vista previa del lado superior del documento",
+    "preview.bottomAlt": "Vista previa del lado inferior del documento",
+    "preview.waitingTop": "Esperando imagen frontal",
+    "preview.waitingBottom": "Esperando imagen posterior",
+    "settings.width": "Ancho",
+    "settings.height": "Alto",
+    "settings.gap": "Separación",
+    "buttons.generate": "Generar PDF",
+    "buttons.generating": "Generando...",
+    "buttons.swap": "Cambiar orden",
+    "buttons.clear": "Limpiar",
+    "buttons.download": "Descargar PDF",
+    "status.initial": "Elige dos imágenes para comenzar.",
+    "status.twoImages": "Elige exactamente dos archivos de imagen.",
+    "status.ready": "Imágenes listas. Genera el PDF cuando el orden sea correcto.",
+    "status.generating": "Generando PDF...",
+    "status.readyPdf":
+      "PDF listo. Si la descarga no empezó automáticamente, usa el enlace Descargar PDF.",
+    "status.orderSwapped": "Orden cambiado.",
+    "error.loadImage": "No se pudo cargar {fileName}.",
+    "error.prepareImage": "No se pudo preparar una de las imágenes.",
+    "error.positiveNumber": "{label} debe ser un número positivo.",
+    "error.sizeRequired": "Ancho y alto deben ser mayores que cero.",
+    "error.pageFit": "Esas dimensiones no caben en una página tamaño carta.",
+    "error.chooseTwo": "Elige exactamente dos imágenes primero.",
+  },
+  en: {
+    "document.title": "ID 150% PDF Generator",
+    "language.label": "Language",
+    "hero.eyebrow": "Client-side PDF tool",
+    "hero.title": "Generate a clean letter-size PDF from both sides of an ID.",
+    "hero.copy":
+      'Upload two scanned images. The file with "Frente", "Front", or "Anverso" in its name is placed on top, each side prints at 12.9 x 8.1 cm by default, and everything stays in this browser.',
+    "drop.title": "Drop two images here",
+    "drop.copy":
+      "or click to browse for PNG, JPG, or other browser-supported image files.",
+    "preview.topLabel": "Top image",
+    "preview.bottomLabel": "Bottom image",
+    "preview.empty": "No image selected",
+    "preview.topAlt": "Top ID side preview",
+    "preview.bottomAlt": "Bottom ID side preview",
+    "preview.waitingTop": "Waiting for front image",
+    "preview.waitingBottom": "Waiting for back image",
+    "settings.width": "Width",
+    "settings.height": "Height",
+    "settings.gap": "Gap",
+    "buttons.generate": "Generate PDF",
+    "buttons.generating": "Generating...",
+    "buttons.swap": "Swap order",
+    "buttons.clear": "Clear",
+    "buttons.download": "Download PDF",
+    "status.initial": "Choose two images to begin.",
+    "status.twoImages": "Please choose exactly two image files.",
+    "status.ready": "Images ready. Generate the PDF when you are happy with the order.",
+    "status.generating": "Generating PDF...",
+    "status.readyPdf":
+      "PDF ready. If the download did not start, use the Download PDF link.",
+    "status.orderSwapped": "Order swapped.",
+    "error.loadImage": "Could not load {fileName}.",
+    "error.prepareImage": "Could not prepare one of the images.",
+    "error.positiveNumber": "{label} must be a positive number.",
+    "error.sizeRequired": "Width and height must be greater than zero.",
+    "error.pageFit": "Those dimensions do not fit on a letter-size page.",
+    "error.chooseTwo": "Choose exactly two images first.",
+  },
+};
 
 const state = {
   images: [],
+  language: getInitialLanguage(),
   pdfUrl: null,
+  status: {
+    key: "status.initial",
+    values: {},
+    isError: false,
+  },
 };
 
 const elements = {
@@ -19,6 +107,7 @@ const elements = {
   widthCm: document.querySelector("#widthCm"),
   heightCm: document.querySelector("#heightCm"),
   gapCm: document.querySelector("#gapCm"),
+  languageSelect: document.querySelector("#languageSelect"),
   topCard: document.querySelector("#topCard"),
   bottomCard: document.querySelector("#bottomCard"),
   topName: document.querySelector("#topName"),
@@ -27,7 +116,52 @@ const elements = {
   bottomSize: document.querySelector("#bottomSize"),
 };
 
-function setStatus(message, isError = false) {
+function getInitialLanguage() {
+  const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  if (storedLanguage && TRANSLATIONS[storedLanguage]) {
+    return storedLanguage;
+  }
+
+  return "es";
+}
+
+function t(key, values = {}) {
+  const translation = TRANSLATIONS[state.language][key] || TRANSLATIONS.es[key] || key;
+  return translation.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? "");
+}
+
+function applyTranslations() {
+  document.documentElement.lang = state.language;
+  document.title = t("document.title");
+  elements.languageSelect.value = state.language;
+  elements.languageSelect.setAttribute("aria-label", t("language.label"));
+
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    element.textContent = t(element.dataset.i18n);
+  });
+
+  document.querySelectorAll("[data-i18n-alt]").forEach((element) => {
+    element.setAttribute("alt", t(element.dataset.i18nAlt));
+  });
+
+  renderStatus();
+  render();
+}
+
+function renderStatus() {
+  elements.status.textContent = state.status.key
+    ? t(state.status.key, state.status.values)
+    : state.status.message;
+  elements.status.classList.toggle("error", state.status.isError);
+}
+
+function setStatus(key, isError = false, values = {}) {
+  state.status = { key, values, isError };
+  renderStatus();
+}
+
+function setStatusMessage(message, isError = false) {
+  state.status = { key: null, message, isError };
   elements.status.textContent = message;
   elements.status.classList.toggle("error", isError);
 }
@@ -48,7 +182,7 @@ function clearImages() {
   }
   state.images = [];
   elements.fileInput.value = "";
-  setStatus("Choose two images to begin.");
+  setStatus("status.initial");
   render();
 }
 
@@ -91,7 +225,7 @@ function loadImageFile(file) {
 
     image.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error(`Could not load ${file.name}.`));
+      reject(new Error(t("error.loadImage", { fileName: file.name })));
     };
 
     image.src = url;
@@ -109,7 +243,7 @@ async function handleFiles(fileList) {
     }
     state.images = [];
     render();
-    setStatus("Please choose exactly two image files.", true);
+    setStatus("status.twoImages", true);
     return;
   }
 
@@ -118,10 +252,10 @@ async function handleFiles(fileList) {
       URL.revokeObjectURL(image.url);
     }
     state.images = sortFrontFirst(await Promise.all(files.map(loadImageFile)));
-    setStatus("Images ready. Generate the PDF when you are happy with the order.");
+    setStatus("status.ready");
     render();
   } catch (error) {
-    setStatus(error.message, true);
+    setStatusMessage(error.message, true);
   }
 }
 
@@ -132,8 +266,8 @@ function renderPreview(card, nameElement, sizeElement, image) {
   if (!image) {
     previewImage.removeAttribute("src");
     nameElement.textContent = card === elements.topCard
-      ? "Waiting for front image"
-      : "Waiting for back image";
+      ? t("preview.waitingTop")
+      : t("preview.waitingBottom");
     sizeElement.textContent = "-";
     return;
   }
@@ -156,18 +290,18 @@ function render() {
 function parsePositiveNumber(input, label) {
   const value = Number(input.value);
   if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`${label} must be a positive number.`);
+    throw new Error(t("error.positiveNumber", { label }));
   }
   return value;
 }
 
 function getLayoutSettings() {
-  const widthCm = parsePositiveNumber(elements.widthCm, "Width");
-  const heightCm = parsePositiveNumber(elements.heightCm, "Height");
-  const gapCm = parsePositiveNumber(elements.gapCm, "Gap");
+  const widthCm = parsePositiveNumber(elements.widthCm, t("settings.width"));
+  const heightCm = parsePositiveNumber(elements.heightCm, t("settings.height"));
+  const gapCm = parsePositiveNumber(elements.gapCm, t("settings.gap"));
 
   if (widthCm <= 0 || heightCm <= 0) {
-    throw new Error("Width and height must be greater than zero.");
+    throw new Error(t("error.sizeRequired"));
   }
 
   const imageWidth = widthCm * CM_TO_POINTS;
@@ -175,7 +309,7 @@ function getLayoutSettings() {
   const gap = gapCm * CM_TO_POINTS;
 
   if (imageWidth > LETTER_WIDTH_POINTS || imageHeight * 2 + gap > LETTER_HEIGHT_POINTS) {
-    throw new Error("Those dimensions do not fit on a letter-size page.");
+    throw new Error(t("error.pageFit"));
   }
 
   return { imageWidth, imageHeight, gap };
@@ -185,7 +319,7 @@ function loadImageElement(url) {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Could not prepare one of the images."));
+    image.onerror = () => reject(new Error(t("error.prepareImage")));
     image.src = url;
   });
 }
@@ -348,14 +482,14 @@ function createPdf(images, layout) {
 
 async function generatePdf() {
   if (state.images.length !== 2) {
-    setStatus("Choose exactly two images first.", true);
+    setStatus("error.chooseTwo", true);
     return;
   }
 
   clearPdfUrl();
   elements.generateButton.disabled = true;
-  elements.generateButton.textContent = "Generating...";
-  setStatus("Generating PDF...");
+  elements.generateButton.textContent = t("buttons.generating");
+  setStatus("status.generating");
 
   try {
     const layout = getLayoutSettings();
@@ -368,11 +502,11 @@ async function generatePdf() {
     elements.downloadLink.download = "id_150_percent.pdf";
     elements.downloadLink.hidden = false;
     elements.downloadLink.click();
-    setStatus("PDF ready. If the download did not start, use the Download PDF link.");
+    setStatus("status.readyPdf");
   } catch (error) {
-    setStatus(error.message, true);
+    setStatusMessage(error.message, true);
   } finally {
-    elements.generateButton.textContent = "Generate PDF";
+    elements.generateButton.textContent = t("buttons.generate");
     render();
   }
 }
@@ -410,12 +544,17 @@ elements.dropZone.addEventListener("drop", (event) => {
 elements.swapButton.addEventListener("click", () => {
   state.images.reverse();
   clearPdfUrl();
-  setStatus("Order swapped.");
+  setStatus("status.orderSwapped");
   render();
 });
 
 elements.clearButton.addEventListener("click", clearImages);
 elements.generateButton.addEventListener("click", generatePdf);
+elements.languageSelect.addEventListener("change", (event) => {
+  state.language = event.target.value;
+  localStorage.setItem(LANGUAGE_STORAGE_KEY, state.language);
+  applyTranslations();
+});
 
 window.addEventListener("beforeunload", () => {
   clearPdfUrl();
@@ -424,4 +563,4 @@ window.addEventListener("beforeunload", () => {
   }
 });
 
-render();
+applyTranslations();
