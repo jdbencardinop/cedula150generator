@@ -164,6 +164,25 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 22px;
   background: #ffffff;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.preview-card:hover,
+.preview-card:focus,
+.preview-card.drag-over {
+  border-color: var(--accent);
+  box-shadow: 0 16px 36px rgba(38, 93, 242, 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.preview-card.drag-over .preview-frame {
+  outline: 2px solid rgba(38, 93, 242, 0.28);
+  outline-offset: -2px;
 }
 
 .preview-label {

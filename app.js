@@ -12,14 +12,16 @@ const TRANSLATIONS = {
     "hero.title": "Genera un PDF tamaño carta con ambos lados de un documento.",
     "hero.copy":
       'Sube dos imágenes escaneadas. El archivo con "Frente", "Front" o "Anverso" en el nombre se coloca arriba, cada lado se imprime a 12.9 x 8.1 cm por defecto, y todo se procesa en este navegador.',
-    "drop.title": "Arrastra dos imágenes aquí",
+    "drop.title": "Arrastra una o dos imágenes aquí",
     "drop.copy":
-      "o haz clic para elegir archivos PNG, JPG u otros formatos compatibles con tu navegador.",
+      "o haz clic para elegir archivos. También puedes soltar una imagen directamente en el recuadro superior o inferior.",
     "preview.topLabel": "Imagen superior",
     "preview.bottomLabel": "Imagen inferior",
-    "preview.empty": "Sin imagen seleccionada",
+    "preview.dropHint": "Haz clic o arrastra una imagen aquí",
     "preview.topAlt": "Vista previa del lado superior del documento",
     "preview.bottomAlt": "Vista previa del lado inferior del documento",
+    "preview.topAria": "Elegir imagen superior",
+    "preview.bottomAria": "Elegir imagen inferior",
     "preview.waitingTop": "Esperando imagen frontal",
     "preview.waitingBottom": "Esperando imagen posterior",
     "settings.width": "Ancho",
@@ -32,11 +34,19 @@ const TRANSLATIONS = {
     "buttons.download": "Descargar PDF",
     "status.initial": "Elige dos imágenes para comenzar.",
     "status.twoImages": "Elige exactamente dos archivos de imagen.",
+    "status.noImages": "No se encontró ninguna imagen en la selección.",
+    "status.tooManyImages": "Elige máximo dos archivos de imagen.",
+    "status.noEmptySlot":
+      "Los dos recuadros ya tienen imagen. Suelta la nueva imagen en el recuadro que quieras reemplazar.",
+    "status.oneImageForSlot": "Para este recuadro, elige solo una imagen.",
+    "status.slotReady": "{slot} actualizada. Puedes agregar o reemplazar la otra imagen.",
     "status.ready": "Imágenes listas. Genera el PDF cuando el orden sea correcto.",
     "status.generating": "Generando PDF...",
     "status.readyPdf":
       "PDF listo. Si la descarga no empezó automáticamente, usa el enlace Descargar PDF.",
     "status.orderSwapped": "Orden cambiado.",
+    "slot.top": "Imagen superior",
+    "slot.bottom": "Imagen inferior",
     "error.loadImage": "No se pudo cargar {fileName}.",
     "error.prepareImage": "No se pudo preparar una de las imágenes.",
     "error.positiveNumber": "{label} debe ser un número positivo.",
@@ -51,14 +61,16 @@ const TRANSLATIONS = {
     "hero.title": "Generate a clean letter-size PDF from both sides of an ID.",
     "hero.copy":
       'Upload two scanned images. The file with "Frente", "Front", or "Anverso" in its name is placed on top, each side prints at 12.9 x 8.1 cm by default, and everything stays in this browser.',
-    "drop.title": "Drop two images here",
+    "drop.title": "Drop one or two images here",
     "drop.copy":
-      "or click to browse for PNG, JPG, or other browser-supported image files.",
+      "or click to choose files. You can also drop one image directly on the top or bottom preview pane.",
     "preview.topLabel": "Top image",
     "preview.bottomLabel": "Bottom image",
-    "preview.empty": "No image selected",
+    "preview.dropHint": "Click or drop an image here",
     "preview.topAlt": "Top ID side preview",
     "preview.bottomAlt": "Bottom ID side preview",
+    "preview.topAria": "Choose top image",
+    "preview.bottomAria": "Choose bottom image",
     "preview.waitingTop": "Waiting for front image",
     "preview.waitingBottom": "Waiting for back image",
     "settings.width": "Width",
@@ -71,11 +83,19 @@ const TRANSLATIONS = {
     "buttons.download": "Download PDF",
     "status.initial": "Choose two images to begin.",
     "status.twoImages": "Please choose exactly two image files.",
+    "status.noImages": "No image files were found in that selection.",
+    "status.tooManyImages": "Choose up to two image files.",
+    "status.noEmptySlot":
+      "Both preview panes already have images. Drop the new image on the pane you want to replace.",
+    "status.oneImageForSlot": "Choose only one image for this pane.",
+    "status.slotReady": "{slot} updated. You can add or replace the other image.",
     "status.ready": "Images ready. Generate the PDF when you are happy with the order.",
     "status.generating": "Generating PDF...",
     "status.readyPdf":
       "PDF ready. If the download did not start, use the Download PDF link.",
     "status.orderSwapped": "Order swapped.",
+    "slot.top": "Top image",
+    "slot.bottom": "Bottom image",
     "error.loadImage": "Could not load {fileName}.",
     "error.prepareImage": "Could not prepare one of the images.",
     "error.positiveNumber": "{label} must be a positive number.",
@@ -86,8 +106,9 @@ const TRANSLATIONS = {
 };
 
 const state = {
-  images: [],
+  images: [null, null],
   language: getInitialLanguage(),
+  pendingSlot: null,
   pdfUrl: null,
   status: {
     key: "status.initial",
@@ -144,6 +165,10 @@ function applyTranslations() {
     element.setAttribute("alt", t(element.dataset.i18nAlt));
   });
 
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+    element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
+  });
+
   renderStatus();
   render();
 }
@@ -178,9 +203,9 @@ function clearPdfUrl() {
 function clearImages() {
   clearPdfUrl();
   for (const image of state.images) {
-    URL.revokeObjectURL(image.url);
+    revokeImage(image);
   }
-  state.images = [];
+  state.images = [null, null];
   elements.fileInput.value = "";
   setStatus("status.initial");
   render();
@@ -202,11 +227,20 @@ function imageOrderScore(fileName) {
   return 2;
 }
 
+function inferSlotFromName(fileName) {
+  const score = imageOrderScore(fileName);
+  return score === 0 || score === 1 ? score : null;
+}
+
 function sortFrontFirst(images) {
-  return [...images].sort((first, second) => {
-    const scoreDiff = imageOrderScore(first.file.name) - imageOrderScore(second.file.name);
-    return scoreDiff || first.file.name.localeCompare(second.file.name);
-  });
+  return images
+    .map((image, index) => ({ image, index }))
+    .sort((first, second) => {
+      const scoreDiff =
+        imageOrderScore(first.image.file.name) - imageOrderScore(second.image.file.name);
+      return scoreDiff || first.index - second.index;
+    })
+    .map(({ image }) => image);
 }
 
 function loadImageFile(file) {
@@ -232,27 +266,127 @@ function loadImageFile(file) {
   });
 }
 
-async function handleFiles(fileList) {
-  const files = [...fileList].filter((file) => file.type.startsWith("image/"));
+function revokeImage(image) {
+  if (image) {
+    URL.revokeObjectURL(image.url);
+  }
+}
+
+function getImageFiles(fileList) {
+  return [...fileList].filter((file) => file.type.startsWith("image/"));
+}
+
+async function loadImageFiles(files) {
+  const loadedImages = [];
+
+  try {
+    for (const file of files) {
+      loadedImages.push(await loadImageFile(file));
+    }
+  } catch (error) {
+    loadedImages.forEach(revokeImage);
+    throw error;
+  }
+
+  return loadedImages;
+}
+
+function firstEmptySlot() {
+  return state.images.findIndex((image) => !image);
+}
+
+function hasTwoImages() {
+  return state.images.every(Boolean);
+}
+
+function hasAnyImage() {
+  return state.images.some(Boolean);
+}
+
+function replaceAllImages(images) {
+  state.images.forEach(revokeImage);
+  state.images = [images[0] || null, images[1] || null];
+}
+
+function replaceSlot(slot, image) {
+  revokeImage(state.images[slot]);
+  state.images[slot] = image;
+}
+
+function setReadyStatus(slot = null) {
+  if (hasTwoImages()) {
+    setStatus("status.ready");
+    return;
+  }
+
+  setStatus("status.slotReady", false, {
+    slot: slot === 0 ? t("slot.top") : t("slot.bottom"),
+  });
+}
+
+async function handleGeneralFiles(fileList) {
+  const files = getImageFiles(fileList);
 
   clearPdfUrl();
 
-  if (files.length !== 2) {
-    for (const image of state.images) {
-      URL.revokeObjectURL(image.url);
-    }
-    state.images = [];
-    render();
-    setStatus("status.twoImages", true);
+  if (files.length === 0) {
+    setStatus("status.noImages", true);
+    return;
+  }
+
+  if (files.length > 2) {
+    setStatus("status.tooManyImages", true);
     return;
   }
 
   try {
-    for (const image of state.images) {
-      URL.revokeObjectURL(image.url);
+    const loadedImages = await loadImageFiles(files);
+
+    if (loadedImages.length === 2) {
+      replaceAllImages(sortFrontFirst(loadedImages));
+      setStatus("status.ready");
+      render();
+      return;
     }
-    state.images = sortFrontFirst(await Promise.all(files.map(loadImageFile)));
-    setStatus("status.ready");
+
+    const [image] = loadedImages;
+    const inferredSlot = inferSlotFromName(image.file.name);
+    const emptySlot = firstEmptySlot();
+    const targetSlot = inferredSlot ?? emptySlot;
+
+    if (targetSlot === -1) {
+      revokeImage(image);
+      setStatus("status.noEmptySlot", true);
+      return;
+    }
+
+    replaceSlot(targetSlot, image);
+    setReadyStatus(targetSlot);
+    render();
+  } catch (error) {
+    setStatusMessage(error.message, true);
+  }
+}
+
+async function handleSlotFiles(slot, fileList) {
+  const files = getImageFiles(fileList);
+
+  clearPdfUrl();
+
+  if (files.length === 0) {
+    setStatus("status.noImages", true);
+    return;
+  }
+
+  if (files.length !== 1) {
+    setStatus("status.oneImageForSlot", true);
+    return;
+  }
+
+  try {
+    const [image] = await loadImageFiles(files);
+    replaceSlot(slot, image);
+    setReadyStatus(slot);
     render();
   } catch (error) {
     setStatusMessage(error.message, true);
@@ -281,10 +415,9 @@ function render() {
   renderPreview(elements.topCard, elements.topName, elements.topSize, state.images[0]);
   renderPreview(elements.bottomCard, elements.bottomName, elements.bottomSize, state.images[1]);
 
-  const hasTwoImages = state.images.length === 2;
-  elements.generateButton.disabled = !hasTwoImages;
-  elements.swapButton.disabled = !hasTwoImages;
-  elements.clearButton.disabled = state.images.length === 0;
+  elements.generateButton.disabled = !hasTwoImages();
+  elements.swapButton.disabled = !hasAnyImage();
+  elements.clearButton.disabled = !hasAnyImage();
 }
 
 function parsePositiveNumber(input, label) {
@@ -481,7 +614,7 @@ function createPdf(images, layout) {
 }
 
 async function generatePdf() {
-  if (state.images.length !== 2) {
+  if (!hasTwoImages()) {
     setStatus("error.chooseTwo", true);
     return;
   }
@@ -511,34 +644,66 @@ async function generatePdf() {
   }
 }
 
-elements.dropZone.addEventListener("click", () => elements.fileInput.click());
-elements.dropZone.addEventListener("keydown", (event) => {
+function openFilePicker(slot = null) {
+  state.pendingSlot = slot;
+  elements.fileInput.multiple = slot === null;
+  elements.fileInput.value = "";
+  elements.fileInput.click();
+}
+
+function handleKeyboardPicker(event, slot = null) {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
-    elements.fileInput.click();
+    openFilePicker(slot);
   }
-});
+}
+
+function addDropTarget(element, onDrop) {
+  for (const eventName of ["dragenter", "dragover"]) {
+    element.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      element.classList.add("drag-over");
+    });
+  }
+
+  for (const eventName of ["dragleave", "drop"]) {
+    element.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      element.classList.remove("drag-over");
+    });
+  }
+
+  element.addEventListener("drop", (event) => {
+    onDrop(event.dataTransfer.files);
+  });
+}
+
+elements.dropZone.addEventListener("click", () => openFilePicker());
+elements.dropZone.addEventListener("keydown", (event) => handleKeyboardPicker(event));
 
 elements.fileInput.addEventListener("change", (event) => {
-  handleFiles(event.target.files);
+  const pendingSlot = state.pendingSlot;
+  state.pendingSlot = null;
+
+  if (pendingSlot === null) {
+    handleGeneralFiles(event.target.files);
+    return;
+  }
+
+  handleSlotFiles(pendingSlot, event.target.files);
 });
 
-for (const eventName of ["dragenter", "dragover"]) {
-  elements.dropZone.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    elements.dropZone.classList.add("drag-over");
-  });
-}
+addDropTarget(elements.dropZone, handleGeneralFiles);
 
-for (const eventName of ["dragleave", "drop"]) {
-  elements.dropZone.addEventListener(eventName, () => {
-    elements.dropZone.classList.remove("drag-over");
-  });
-}
-
-elements.dropZone.addEventListener("drop", (event) => {
-  event.preventDefault();
-  handleFiles(event.dataTransfer.files);
+[
+  [elements.topCard, 0],
+  [elements.bottomCard, 1],
+].forEach(([card, slot]) => {
+  card.addEventListener("click", () => openFilePicker(slot));
+  card.addEventListener("keydown", (event) => handleKeyboardPicker(event, slot));
+  addDropTarget(card, (files) => handleSlotFiles(slot, files));
 });
 
 elements.swapButton.addEventListener("click", () => {

@@ -32,16 +32,16 @@
           <input id="fileInput" type="file" accept="image/*" multiple hidden>
           <div class="drop-icon">PDF</div>
           <div>
-            <h2 data-i18n="drop.title">Arrastra dos imágenes aquí</h2>
-            <p data-i18n="drop.copy">o haz clic para elegir archivos PNG, JPG u otros formatos compatibles con tu navegador.</p>
+            <h2 data-i18n="drop.title">Arrastra una o dos imágenes aquí</h2>
+            <p data-i18n="drop.copy">o haz clic para elegir archivos. También puedes soltar una imagen directamente en el recuadro superior o inferior.</p>
           </div>
         </div>
 
         <div class="preview-grid" aria-live="polite">
-          <article class="preview-card" id="topCard">
+          <article class="preview-card" id="topCard" data-slot="0" tabindex="0" role="button" aria-label="Elegir imagen superior" data-i18n-aria-label="preview.topAria">
             <div class="preview-label" data-i18n="preview.topLabel">Imagen superior</div>
             <div class="preview-frame">
-              <span data-i18n="preview.empty">Sin imagen seleccionada</span>
+              <span data-i18n="preview.dropHint">Haz clic o arrastra una imagen aquí</span>
               <img alt="Vista previa del lado superior del documento" data-i18n-alt="preview.topAlt">
             </div>
             <div class="preview-meta">
@@ -50,10 +50,10 @@
             </div>
           </article>
 
-          <article class="preview-card" id="bottomCard">
+          <article class="preview-card" id="bottomCard" data-slot="1" tabindex="0" role="button" aria-label="Elegir imagen inferior" data-i18n-aria-label="preview.bottomAria">
             <div class="preview-label" data-i18n="preview.bottomLabel">Imagen inferior</div>
             <div class="preview-frame">
-              <span data-i18n="preview.empty">Sin imagen seleccionada</span>
+              <span data-i18n="preview.dropHint">Haz clic o arrastra una imagen aquí</span>
               <img alt="Vista previa del lado inferior del documento" data-i18n-alt="preview.bottomAlt">
             </div>
             <div class="preview-meta">
